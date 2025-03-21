@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flip & Find</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #e6a5cd; /* Light Blue Background */
+            font-family: Arial, sans-serif;
+        }
+        h1 {
+            text-align: center;
+            font-size: 2.5em;
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        .level-selector {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .level-button {
+            padding: 10px 20px;
+            font-size: 18px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background-color: #860760;
+            color: white;
+            transition: background-color 0.3s;
+        }
+        .level-button:hover {
+            background-color: #860760;
+        }
+        .locked {
+            background-color: gray;
+            cursor: not-allowed;
+        }
+        .game-container {
+            display: none;
+            gap: 12px;
+            background: #ecf0f1;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        .card {
+            width: 80px;
+            height: 80px;
+            background-color: #860760;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            color: white;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: transform 0.3s, background-color 0.3s;
+        }
+        .card:hover {
+            background-color: #860760;
+        }
+        .flipped {
+            background-color: #e5e7e6;
+            transform: rotateY(180deg);
+        }
+        .next-level {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 18px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background-color: #e5e7e6;
+            color: rgb(11, 11, 11);
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Flip & Find</h1>
+    <div class="level-selector">
+        <button class="level-button" onclick="startGame('easy')">Level 1 ✅</button>
+        <button class="level-button locked" id="intermediate-btn" onclick="startGame('intermediate')" disabled>Level 2 🔒</button>
+        <button class="level-button locked" id="hard-btn" onclick="startGame('hard')" disabled>Level 3 🔒</button>
+    </div>
+    <div class="game-container" id="game"></div>
+    <button id="next-level-btn" class="next-level" onclick="nextLevel()">Next Level ▶</button>
+    <script>
+        const iconSets = {
+            easy: ['🍎', '🍌', '🍒', '🍇'],
+            intermediate: ['🍎', '🍌', '🍒', '🍇', '🍉', '🥝', '🍍', '🥭'],
+            hard: ['🍎', '🍌', '🍒', '🍇', '🍉', '🥝', '🍍', '🥭', '🍋', '🍊', '🍏', '🥑', '🍓', '🥥', '🍈', '🍔', '🌭', '🍕']
+        };
+        let firstCard, secondCard, matches = 0;
+        let lockBoard = false;
+        let currentLevel = 'easy';
+        
+        function startGame(level) {
+            currentLevel = level;
+            document.getElementById('next-level-btn').style.display = 'none';
+            const gameContainer = document.getElementById('game');
+            gameContainer.style.display = 'grid';
+            gameContainer.innerHTML = '';
+            matches = 0;
+            let icons = iconSets[level];
+            let cards = [...icons, ...icons];
+            cards.sort(() => Math.random() - 0.5);
+            
+            let gridSize = level === 'easy' ? 2 : level === 'intermediate' ? 4 : 6;
+            gameContainer.style.gridTemplateColumns = `repeat(${gridSize}, 80px)`;
+            
+            cards.forEach(icon => {
+                const card = document.createElement('div');
+                card.classList.add('card');
+                card.dataset.icon = icon;
+                card.addEventListener('click', flipCard);
+                gameContainer.appendChild(card);
+            });
+        }
+
+        function flipCard() {
+            if (lockBoard || this === firstCard) return;
+            this.textContent = this.dataset.icon;
+            this.classList.add('flipped');
+            
+            if (!firstCard) {
+                firstCard = this;
+                return;
+            }
+            
+            secondCard = this;
+            lockBoard = true;
+            
+            setTimeout(checkMatch, 1000);
+        }
+
+        function checkMatch() {
+            if (firstCard.dataset.icon === secondCard.dataset.icon) {
+                firstCard.removeEventListener('click', flipCard);
+                secondCard.removeEventListener('click', flipCard);
+                matches++;
+                checkLevelCompletion();
+            } else {
+                firstCard.textContent = '';
+                secondCard.textContent = '';
+                firstCard.classList.remove('flipped');
+                secondCard.classList.remove('flipped');
+            }
+            firstCard = null;
+            secondCard = null;
+            lockBoard = false;
+        }
+
+        function checkLevelCompletion() {
+    const totalPairs = iconSets[currentLevel].length;
+    if (matches === totalPairs) {
+        alert(`You successfully completed ${currentLevel} level!`);
+        
+        if (currentLevel === 'easy') {
+            let intermediateBtn = document.getElementById('intermediate-btn');
+            intermediateBtn.removeAttribute('disabled');
+            intermediateBtn.classList.remove('locked');
+            intermediateBtn.innerHTML = 'Level 2 ✅'; // Update emoji
+        } else if (currentLevel === 'intermediate') {
+            let hardBtn = document.getElementById('hard-btn');
+            hardBtn.removeAttribute('disabled');
+            hardBtn.classList.remove('locked');
+            hardBtn.innerHTML = 'Level 3 ✅'; // Update emoji
+        }
+        document.getElementById('next-level-btn').style.display = 'block';
+        if (currentLevel === 'hard') {
+    document.getElementById('next-level-btn').textContent = 'Finish 🏆';
+    document.getElementById('next-level-btn').setAttribute('onclick', 'alert("Congratulations! You completed all levels!")');
+} else {
+    document.getElementById('next-level-btn').style.display = 'block';
+}
+
+    }
+}
+
+
+        function nextLevel() {
+            if (currentLevel === 'easy') startGame('intermediate');
+            else if (currentLevel === 'intermediate') startGame('hard');
+        }
+    </script>
+</body>
+</html>
+
